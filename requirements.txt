@@ -1,0 +1,5 @@
+pymongo
+gspread
+google-auth
+python-dateutil
+gspread-formatting
