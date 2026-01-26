@@ -1,10 +1,15 @@
 name: MongoDB to Google Sheet Sync
 
 on:
+  push:
+    branches: ["main"]
   schedule:
-    - cron: "*/5 * * * *"  
+    - cron: "*/5 * * * *"   # Every 5 minutes (UTC)
   workflow_dispatch:
 
+concurrency:
+  group: mongodb-to-sheet-sync
+  cancel-in-progress: true
 
 jobs:
   sync:
@@ -18,15 +23,37 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Create credentials.json
         run: |
-          echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > credentials.json
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: Run Script
+      - name: Verify files
+        run: |
+          echo "Repo files:"
+          ls -la
+
+      - name: Create credentials.json from Secret
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.GOOGLE_CREDENTIALS_JSON }}" ]; then
+            echo "❌ ERROR: GOOGLE_CREDENTIALS_JSON secret is missing!"
+            exit 1
+          fi
+          echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > credentials.json
+          echo "✅ credentials.json created"
+
+      - name: Run Script (MongoDB -> Google Sheet)
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
-        run: python sync_mongo_to_sheet.py
+        run: |
+          if [ -z "${MONGO_URI}" ]; then
+            echo "❌ ERROR: MONGO_URI secret is missing!"
+            exit 1
+          fi
+
+          echo "✅ Starting sync..."
+          python sync_mongo_to_sheet.py
+          echo "✅ Sync completed"
