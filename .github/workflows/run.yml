@@ -2,9 +2,9 @@ name: MongoDB to Google Sheet Sync
 
 on:
   schedule:
-  - cron: "*/5 * * * *"
-
+    - cron: "0 * * * *"   # runs every 1 hour (at 00 minutes)
   workflow_dispatch:
+
 
 jobs:
   sync:
